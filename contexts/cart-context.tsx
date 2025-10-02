@@ -44,6 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = async (product: Product, quantity = 1) => {
     const sessionId = getSessionId()
+    const tempId = `temp-${Date.now()}`
 
     setItems((prevItems) => {
       const existingIndex = prevItems.findIndex((item) => item.product_id === product.id)
@@ -57,7 +58,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return newItems
       } else {
         const newItem: CartItem = {
-          id: `temp-${Date.now()}`,
+          id: tempId,
           session_id: sessionId,
           product_id: product.id,
           quantity,
@@ -85,8 +86,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
         duration: 2000,
       })
-    } else {
-      await loadCart(false)
+    } else if (result.data) {
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === tempId
+            ? {
+                ...item,
+                id: result.data.id,
+                created_at: result.data.created_at,
+                updated_at: result.data.updated_at,
+              }
+            : item.product_id === product.id && item.id !== tempId
+              ? {
+                  ...item,
+                  id: result.data.id,
+                  quantity: result.data.quantity,
+                  updated_at: result.data.updated_at,
+                }
+              : item,
+        ),
+      )
     }
   }
 

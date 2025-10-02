@@ -21,16 +21,17 @@ async function OrderSuccessContent({ orderId }: { orderId: string }) {
     notFound()
   }
 
-  // Format date
   const orderDate = new Date(order.created_at)
   const formattedDate = orderDate.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "Asia/Jakarta",
   })
   const formattedTime = orderDate.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Jakarta",
   })
 
   return (

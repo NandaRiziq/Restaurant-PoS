@@ -2,9 +2,9 @@
 
 import type { Product } from "@/lib/types/product"
 import { formatIDRCompact } from "@/lib/utils/currency"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Plus, Minus } from "lucide-react"
+import { Plus, Minus, X } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
 
@@ -26,49 +26,75 @@ export function ProductDetailModal({ product, open, onOpenChange, onAddToCart }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl">{product.name}</DialogTitle>
-        </DialogHeader>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden">
+      <DialogContent className="max-w-md p-0 gap-0 max-h-[90vh] flex flex-col">
+        {/* Close button */}
+        <button
+          onClick={() => onOpenChange(false)}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-10"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
+
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Product name centered */}
+          <h2 className="text-xl font-semibold text-center mb-4">{product.name}</h2>
+
+          {/* Product image */}
+          <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
             <Image
               src={product.image_url || "/placeholder.svg"}
               alt={product.name}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
+              sizes="(max-width: 768px) 100vw, 400px"
             />
           </div>
-          <div className="flex flex-col justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-2 capitalize">{product.category}</p>
-              <p className="text-3xl font-bold text-amber-600 mb-4">{formatIDRCompact(product.price)}</p>
-              {product.description && <p className="text-gray-700 leading-relaxed mb-6">{product.description}</p>}
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-gray-700">Jumlah:</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="h-8 w-8"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
-                  <Button variant="outline" size="icon" onClick={() => setQuantity(quantity + 1)} className="h-8 w-8">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <Button onClick={handleAddToCart} className="w-full bg-amber-500 hover:bg-amber-600 text-white" size="lg">
-                Tambah ke Keranjang - {formatIDRCompact(product.price * quantity)}
+
+          {/* Category */}
+          <p className="text-sm text-gray-600 mb-1 capitalize">{product.category}</p>
+
+          {/* Price */}
+          <p className="text-2xl font-bold text-amber-600 mb-3">{formatIDRCompact(product.price)}</p>
+
+          {/* Description */}
+          {product.description && <p className="text-sm text-gray-700 leading-relaxed">{product.description}</p>}
+        </div>
+
+        {/* Fixed bottom section with quantity and add to cart button */}
+        <div className="border-t border-gray-200 p-6 space-y-4 flex-shrink-0 bg-white">
+          {/* Quantity controls */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Jumlah</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="h-9 w-9 rounded-md"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-10 text-center font-medium text-gray-900">{quantity}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setQuantity(quantity + 1)}
+                className="h-9 w-9 rounded-md"
+              >
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
           </div>
+
+          {/* Add to cart button */}
+          <Button
+            onClick={handleAddToCart}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg h-12 text-base font-medium"
+          >
+            Tambah ke Keranjang - {formatIDRCompact(product.price * quantity)}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

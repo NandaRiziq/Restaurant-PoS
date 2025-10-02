@@ -36,33 +36,46 @@ export async function addToCart(sessionId: string, productId: string, quantity =
 
   if (existing) {
     // Update quantity
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("cart_items")
       .update({ quantity: existing.quantity + quantity, updated_at: new Date().toISOString() })
       .eq("id", existing.id)
+      .select()
+      .single()
 
     if (error) {
       console.error("Error updating cart item:", error)
       return { success: false, error: error.message }
     }
+
+    return { success: true, data }
   } else {
     // Insert new item
-    const { error } = await supabase.from("cart_items").insert({
-      session_id: sessionId,
-      product_id: productId,
-      quantity,
-    })
+    const { data, error } = await supabase
+      .from("cart_items")
+      .insert({
+        session_id: sessionId,
+        product_id: productId,
+        quantity,
+      })
+      .select()
+      .single()
 
     if (error) {
       console.error("Error adding to cart:", error)
       return { success: false, error: error.message }
     }
-  }
 
-  return { success: true }
+    return { success: true, data }
+  }
 }
 
 export async function updateCartItemQuantity(itemId: string, quantity: number) {
+  if (itemId.startsWith("temp-")) {
+    // Temporary item not yet in database, skip database operation
+    return { success: true }
+  }
+
   const supabase = await createClient()
 
   if (quantity <= 0) {
@@ -83,6 +96,11 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
 }
 
 export async function removeFromCart(itemId: string) {
+  if (itemId.startsWith("temp-")) {
+    // Temporary item not yet in database, skip database operation
+    return { success: true }
+  }
+
   const supabase = await createClient()
 
   const { error } = await supabase.from("cart_items").delete().eq("id", itemId)
