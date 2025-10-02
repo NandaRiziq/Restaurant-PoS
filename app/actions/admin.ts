@@ -79,6 +79,76 @@ export async function deleteProduct(id: string) {
   return { success: true }
 }
 
+export async function uploadImageToSupabase(
+  base64Data: string | File,
+  fileName?: string,
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const supabase = createAdminClient()
+
+    let buffer: Buffer
+    let fileExt: string
+    let uniqueFileName: string
+    let filePath: string
+
+    if (typeof base64Data === "string") {
+      // Convert base64 to buffer
+      const base64String = base64Data.split(",")[1] // Remove data:image/xxx;base64, prefix
+      buffer = Buffer.from(base64String, "base64")
+      fileExt = fileName!.split(".").pop()!
+      uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      filePath = `${uniqueFileName}`
+    } else {
+      // Handle File upload
+      fileExt = base64Data.name.split(".").pop()
+      uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      filePath = `${uniqueFileName}`
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage.from("product-images").upload(filePath, base64Data, {
+        cacheControl: "3600",
+        upsert: false,
+      })
+
+      if (error) {
+        console.error("[v0] Error uploading to Supabase Storage:", error)
+        throw error
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath)
+
+      return { success: true, url: publicUrl }
+    }
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, buffer, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: `image/${fileExt}`,
+      })
+
+    if (uploadError) {
+      console.error("[v0] Error uploading to Supabase Storage:", uploadError)
+      throw uploadError
+    }
+
+    // Get public URL
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("product-images").getPublicUrl(filePath)
+
+    return { success: true, url: publicUrl }
+  } catch (error) {
+    console.error("[v0] Error uploading to Supabase:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Upload failed" }
+  }
+}
+
 export async function uploadImageToN8n(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
   try {
     const formData = new FormData()
@@ -102,38 +172,6 @@ export async function uploadImageToN8n(file: File): Promise<{ success: boolean; 
     console.error("[v0] Error uploading to n8n:", error)
     // Fallback to placeholder for demo purposes
     return { success: true, url: "/placeholder.svg?height=300&width=300" }
-  }
-}
-
-export async function uploadImageToSupabase(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
-  try {
-    const supabase = createAdminClient()
-
-    // Generate unique filename
-    const fileExt = file.name.split(".").pop()
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-    const filePath = `${fileName}`
-
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage.from("product-images").upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-    })
-
-    if (error) {
-      console.error("[v0] Error uploading to Supabase Storage:", error)
-      throw error
-    }
-
-    // Get public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("product-images").getPublicUrl(filePath)
-
-    return { success: true, url: publicUrl }
-  } catch (error) {
-    console.error("[v0] Error uploading to Supabase:", error)
-    return { success: false, error: error instanceof Error ? error.message : "Upload failed" }
   }
 }
 

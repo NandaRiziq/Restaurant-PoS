@@ -61,7 +61,14 @@ export function EditProductDialog({ product, open, onOpenChange, onUpdate }: Edi
       let imageUrl = product.image_url
 
       if (imageFile) {
-        const uploadResult = await uploadImageToSupabase(imageFile)
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(imageFile)
+        })
+
+        const uploadResult = await uploadImageToSupabase(base64, imageFile.name)
         if (uploadResult.success && uploadResult.url) {
           imageUrl = uploadResult.url
         } else {
