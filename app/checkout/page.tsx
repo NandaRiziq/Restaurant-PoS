@@ -79,6 +79,7 @@ export default function CheckoutPage() {
 
       const paymentPayload = {
         order_id: orderResult.orderId,
+        success_redirect_url: `${window.location.origin}/order-success?order_id=${orderResult.orderId}`,
       }
       console.log("[v0] Sending payment request:", paymentPayload)
 
