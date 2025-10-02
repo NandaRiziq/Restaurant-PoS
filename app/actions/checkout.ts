@@ -6,8 +6,8 @@ import type { Order, OrderItem } from "@/lib/types/order"
 export async function createOrder(data: {
   sessionId: string
   customerName: string
-  customerPhone: string
-  customerAddress: string
+  customerPhone?: string
+  tableNumber: number
   totalAmount: number
   items: Array<{
     productId: string
@@ -25,15 +25,18 @@ export async function createOrder(data: {
       .insert({
         session_id: data.sessionId,
         customer_name: data.customerName,
-        customer_phone: data.customerPhone,
-        customer_address: data.customerAddress,
+        customer_phone: data.customerPhone || null,
+        table_number: data.tableNumber,
         total_amount: data.totalAmount,
         status: "pending",
       })
       .select()
       .single()
 
-    if (orderError) throw orderError
+    if (orderError) {
+      console.error("Order creation error:", orderError)
+      throw orderError
+    }
 
     // Create order items
     const orderItems = data.items.map((item) => ({
@@ -47,11 +50,14 @@ export async function createOrder(data: {
 
     const { error: itemsError } = await supabase.from("order_items").insert(orderItems)
 
-    if (itemsError) throw itemsError
+    if (itemsError) {
+      console.error("Order items creation error:", itemsError)
+      throw itemsError
+    }
 
     return { success: true, orderId: order.id }
   } catch (error) {
-    console.error("[v0] Error creating order:", error)
+    console.error("Error creating order:", error)
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" }
   }
 }

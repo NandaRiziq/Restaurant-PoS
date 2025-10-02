@@ -5,7 +5,7 @@ import { formatIDRCompact } from "@/lib/utils/currency"
 import { Button } from "@/components/ui/button"
 import { Plus, Minus, Trash2 } from "lucide-react"
 import Image from "next/image"
-import { useCart } from "@/hooks/use-cart"
+import { useCart } from "@/contexts/cart-context"
 
 interface CartItemCardProps {
   item: CartItem

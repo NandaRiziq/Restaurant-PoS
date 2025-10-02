@@ -4,6 +4,7 @@ export interface Product {
   price: number
   category: "makanan" | "minuman"
   image_url: string | null
+  description: string | null
   created_at: string
   updated_at: string
 }

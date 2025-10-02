@@ -32,6 +32,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         <div className="p-4 space-y-3">
           <div className="cursor-pointer" onClick={() => setShowDetail(true)}>
             <h3 className="font-medium text-gray-900 line-clamp-1">{product.name}</h3>
+            {product.description && <p className="text-sm text-gray-600 line-clamp-2 mt-1">{product.description}</p>}
             <p className="text-lg font-semibold text-amber-600 mt-1">{formatIDRCompact(product.price)}</p>
           </div>
           <Button

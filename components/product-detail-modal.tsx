@@ -43,7 +43,8 @@ export function ProductDetailModal({ product, open, onOpenChange, onAddToCart }:
           <div className="flex flex-col justify-between">
             <div>
               <p className="text-sm text-gray-500 mb-2 capitalize">{product.category}</p>
-              <p className="text-3xl font-bold text-amber-600 mb-6">{formatIDRCompact(product.price)}</p>
+              <p className="text-3xl font-bold text-amber-600 mb-4">{formatIDRCompact(product.price)}</p>
+              {product.description && <p className="text-gray-700 leading-relaxed mb-6">{product.description}</p>}
             </div>
             <div className="space-y-4">
               <div className="flex items-center gap-4">

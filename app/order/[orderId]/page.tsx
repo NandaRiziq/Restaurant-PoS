@@ -61,13 +61,15 @@ export default async function OrderConfirmationPage({ params }: { params: Promis
                 <p className="font-medium">{order.customer_name}</p>
               </div>
               <div>
-                <p className="text-gray-500 mb-1">Telepon</p>
-                <p className="font-medium">{order.customer_phone}</p>
+                <p className="text-gray-500 mb-1">Nomor Meja</p>
+                <p className="font-medium">Meja {order.table_number}</p>
               </div>
-              <div className="col-span-2">
-                <p className="text-gray-500 mb-1">Alamat Pengiriman</p>
-                <p className="font-medium">{order.customer_address}</p>
-              </div>
+              {order.customer_phone && (
+                <div className="col-span-2">
+                  <p className="text-gray-500 mb-1">Telepon</p>
+                  <p className="font-medium">{order.customer_phone}</p>
+                </div>
+              )}
             </div>
 
             <Separator />

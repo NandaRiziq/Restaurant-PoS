@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { useCart } from "@/hooks/use-cart"
+import { useCart } from "@/contexts/cart-context"
 import { CartItemCard } from "./cart-item-card"
 import { formatIDRCompact } from "@/lib/utils/currency"
 import { ShoppingBag } from "lucide-react"
@@ -26,8 +26,8 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0">
-        <SheetHeader className="px-6 py-4 border-b">
+      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0 h-full">
+        <SheetHeader className="px-6 py-4 border-b shrink-0">
           <SheetTitle className="text-xl">Keranjang Belanja</SheetTitle>
           {totalItems > 0 && <p className="text-sm text-gray-500">{totalItems} item</p>}
         </SheetHeader>
@@ -47,15 +47,17 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 px-6">
-              <div className="space-y-4 py-4">
-                {items.map((item) => (
-                  <CartItemCard key={item.id} item={item} />
-                ))}
-              </div>
-            </ScrollArea>
+            <div className="flex-1 overflow-hidden min-h-0">
+              <ScrollArea className="h-full px-6">
+                <div className="space-y-4 py-4">
+                  {items.map((item) => (
+                    <CartItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
 
-            <div className="border-t bg-white px-6 py-4 space-y-4">
+            <div className="border-t bg-white px-6 py-4 space-y-4 shrink-0">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>

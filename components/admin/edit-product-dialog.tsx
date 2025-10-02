@@ -8,9 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { updateProduct } from "@/app/actions/admin"
+import { updateProduct, uploadImageToSupabase } from "@/app/actions/admin"
 import { useToast } from "@/hooks/use-toast"
+import { Upload } from "lucide-react"
 
 interface EditProductDialogProps {
   product: Product
@@ -23,6 +25,9 @@ export function EditProductDialog({ product, open, onOpenChange, onUpdate }: Edi
   const [name, setName] = useState(product.name)
   const [price, setPrice] = useState(product.price.toString())
   const [category, setCategory] = useState<"makanan" | "minuman">(product.category)
+  const [description, setDescription] = useState(product.description || "")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(product.image_url || null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
@@ -30,34 +35,77 @@ export function EditProductDialog({ product, open, onOpenChange, onUpdate }: Edi
     setName(product.name)
     setPrice(product.price.toString())
     setCategory(product.category)
+    setDescription(product.description || "")
+    setImagePreview(product.image_url || null)
+    setImageFile(null)
   }, [product])
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImageFile(file)
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    const result = await updateProduct(product.id, {
-      name,
-      price: Number.parseInt(price),
-      category,
-    })
+    try {
+      let imageUrl = product.image_url
 
-    if (result.success) {
-      toast({
-        title: "Produk diperbarui",
-        description: "Produk berhasil diperbarui",
+      if (imageFile) {
+        const uploadResult = await uploadImageToSupabase(imageFile)
+        if (uploadResult.success && uploadResult.url) {
+          imageUrl = uploadResult.url
+        } else {
+          toast({
+            title: "Gagal upload gambar",
+            description: uploadResult.error || "Terjadi kesalahan saat upload gambar",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      const result = await updateProduct(product.id, {
+        name,
+        price: Number.parseInt(price),
+        category,
+        description: description || null,
+        image_url: imageUrl,
       })
-      onUpdate()
-      onOpenChange(false)
-    } else {
+
+      if (result.success) {
+        toast({
+          title: "Produk diperbarui",
+          description: "Produk berhasil diperbarui",
+        })
+        onUpdate()
+        onOpenChange(false)
+      } else {
+        toast({
+          title: "Gagal memperbarui",
+          description: result.error || "Terjadi kesalahan",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
       toast({
         title: "Gagal memperbarui",
-        description: result.error || "Terjadi kesalahan",
+        description: "Terjadi kesalahan",
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setIsSubmitting(false)
   }
 
   return (
@@ -88,6 +136,31 @@ export function EditProductDialog({ product, open, onOpenChange, onUpdate }: Edi
                 <SelectItem value="minuman">Minuman</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-description">Deskripsi</Label>
+            <Textarea
+              id="edit-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Deskripsi produk..."
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-image">Gambar Produk</Label>
+            {imagePreview && (
+              <div className="relative w-full h-32 mb-2 rounded-lg overflow-hidden border">
+                <img src={imagePreview || "/placeholder.svg"} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Input id="edit-image" type="file" accept="image/*" onChange={handleImageChange} className="flex-1" />
+              <Upload className="h-4 w-4 text-gray-400" />
+            </div>
+            <p className="text-xs text-gray-500">Upload gambar baru untuk mengganti gambar lama</p>
           </div>
 
           <div className="flex gap-3 pt-4">

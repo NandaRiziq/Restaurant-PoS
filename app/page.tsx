@@ -8,7 +8,7 @@ import { CategoryTabs } from "@/components/category-tabs"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useCart } from "@/hooks/use-cart"
+import { useCart } from "@/contexts/cart-context"
 import { CartDrawer } from "@/components/cart-drawer"
 import { formatIDRCompact } from "@/lib/utils/currency"
 

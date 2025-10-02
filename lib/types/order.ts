@@ -2,8 +2,8 @@ export interface Order {
   id: string
   session_id: string
   customer_name: string
-  customer_phone: string
-  customer_address: string
+  customer_phone?: string // Made optional to match database schema
+  table_number: number // Replaced customer_address with table_number
   total_amount: number
   status: "pending" | "paid" | "cancelled"
   payment_method?: string

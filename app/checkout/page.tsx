@@ -4,11 +4,10 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useCart } from "@/hooks/use-cart"
+import { useCart } from "@/contexts/cart-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { formatIDRCompact } from "@/lib/utils/currency"
@@ -24,7 +23,7 @@ export default function CheckoutPage() {
   const { items, totalAmount, isLoading } = useCart()
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
-  const [customerAddress, setCustomerAddress] = useState("")
+  const [tableNumber, setTableNumber] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -40,12 +39,20 @@ export default function CheckoutPage() {
     try {
       const sessionId = getSessionId()
 
+      const parsedTableNumber = Number.parseInt(tableNumber)
+
+      if (Number.isNaN(parsedTableNumber) || parsedTableNumber < 1) {
+        alert("Nomor meja harus diisi dengan angka yang valid")
+        setIsSubmitting(false)
+        return
+      }
+
       // Create order
       const orderResult = await createOrder({
         sessionId,
         customerName,
-        customerPhone,
-        customerAddress,
+        customerPhone: customerPhone || undefined,
+        tableNumber: parsedTableNumber,
         totalAmount,
         items: items.map((item) => ({
           productId: item.product_id,
@@ -83,7 +90,7 @@ export default function CheckoutPage() {
         throw new Error("Payment failed")
       }
     } catch (error) {
-      console.error("[v0] Checkout error:", error)
+      console.error("Checkout error:", error)
       alert("Terjadi kesalahan saat checkout. Silakan coba lagi.")
     } finally {
       setIsSubmitting(false)
@@ -123,12 +130,12 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Informasi Pengiriman</CardTitle>
+                <CardTitle>Informasi Pesanan</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nama Lengkap</Label>
+                    <Label htmlFor="name">Nama</Label>
                     <Input
                       id="name"
                       value={customerName}
@@ -139,26 +146,26 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Nomor Telepon</Label>
+                    <Label htmlFor="phone">Nomor Telepon *opsional</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="08123456789"
-                      required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address">Alamat Lengkap</Label>
-                    <Textarea
-                      id="address"
-                      value={customerAddress}
-                      onChange={(e) => setCustomerAddress(e.target.value)}
-                      placeholder="Jl. Contoh No. 123, Jakarta"
-                      rows={4}
+                    <Label htmlFor="tableNumber">Nomor Meja</Label>
+                    <Input
+                      id="tableNumber"
+                      type="number"
+                      value={tableNumber}
+                      onChange={(e) => setTableNumber(e.target.value)}
+                      placeholder="1"
                       required
+                      min="1"
                     />
                   </div>
 
@@ -213,10 +220,6 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>
                     <span className="font-medium">{formatIDRCompact(totalAmount)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Ongkos Kirim</span>
-                    <span className="font-medium text-green-600">Gratis</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">

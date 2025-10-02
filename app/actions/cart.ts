@@ -17,7 +17,7 @@ export async function getCartItems(sessionId: string): Promise<CartItem[]> {
     .eq("session_id", sessionId)
 
   if (error) {
-    console.error("[v0] Error fetching cart items:", error)
+    console.error("Error fetching cart items:", error)
     return []
   }
 
@@ -42,7 +42,7 @@ export async function addToCart(sessionId: string, productId: string, quantity =
       .eq("id", existing.id)
 
     if (error) {
-      console.error("[v0] Error updating cart item:", error)
+      console.error("Error updating cart item:", error)
       return { success: false, error: error.message }
     }
   } else {
@@ -54,7 +54,7 @@ export async function addToCart(sessionId: string, productId: string, quantity =
     })
 
     if (error) {
-      console.error("[v0] Error adding to cart:", error)
+      console.error("Error adding to cart:", error)
       return { success: false, error: error.message }
     }
   }
@@ -75,7 +75,7 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
     .eq("id", itemId)
 
   if (error) {
-    console.error("[v0] Error updating cart item quantity:", error)
+    console.error("Error updating cart item quantity:", error)
     return { success: false, error: error.message }
   }
 
@@ -88,7 +88,7 @@ export async function removeFromCart(itemId: string) {
   const { error } = await supabase.from("cart_items").delete().eq("id", itemId)
 
   if (error) {
-    console.error("[v0] Error removing from cart:", error)
+    console.error("Error removing from cart:", error)
     return { success: false, error: error.message }
   }
 
@@ -101,7 +101,7 @@ export async function clearCart(sessionId: string) {
   const { error } = await supabase.from("cart_items").delete().eq("session_id", sessionId)
 
   if (error) {
-    console.error("[v0] Error clearing cart:", error)
+    console.error("Error clearing cart:", error)
     return { success: false, error: error.message }
   }
 
