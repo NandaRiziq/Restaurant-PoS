@@ -25,6 +25,7 @@ export default function CheckoutPage() {
   const [customerPhone, setCustomerPhone] = useState("")
   const [tableNumber, setTableNumber] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState("Memproses...")
 
   useEffect(() => {
     if (!isLoading && items.length === 0) {
@@ -35,6 +36,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setLoadingMessage("Memproses...")
 
     try {
       const sessionId = getSessionId()
@@ -47,7 +49,6 @@ export default function CheckoutPage() {
         return
       }
 
-      // Create order
       const orderResult = await createOrder({
         sessionId,
         customerName,
@@ -66,34 +67,62 @@ export default function CheckoutPage() {
         throw new Error(orderResult.error)
       }
 
-      // Call Xendit payment API
-      const paymentResponse = await fetch("/api/xendit", {
+      console.log("[v0] Order created successfully:", orderResult.orderId)
+      setLoadingMessage("Memproses pembayaran...")
+
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_CREATE_PAYMENT_URL
+      console.log("[v0] Webhook URL:", webhookUrl)
+
+      if (!webhookUrl) {
+        throw new Error("URL webhook pembayaran tidak dikonfigurasi")
+      }
+
+      const paymentPayload = {
+        order_id: orderResult.orderId,
+      }
+      console.log("[v0] Sending payment request:", paymentPayload)
+
+      const paymentResponse = await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: orderResult.orderId,
-          amount: totalAmount,
-          customerName,
-          customerPhone,
-        }),
+        body: JSON.stringify(paymentPayload),
       })
 
-      const paymentData = await paymentResponse.json()
+      console.log("[v0] Payment response status:", paymentResponse.status)
+      console.log("[v0] Payment response ok:", paymentResponse.ok)
 
-      if (paymentData.success) {
-        // Clear cart
-        await clearCart(sessionId)
+      const responseText = await paymentResponse.text()
+      console.log("[v0] Payment response body:", responseText)
 
-        // Redirect to order confirmation
-        router.push(`/order/${orderResult.orderId}`)
-      } else {
-        throw new Error("Payment failed")
+      if (!paymentResponse.ok) {
+        throw new Error(`Gagal membuat pembayaran (Status: ${paymentResponse.status})`)
       }
+
+      let paymentData
+      try {
+        paymentData = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error("[v0] Failed to parse response:", parseError)
+        throw new Error("Respons pembayaran tidak valid")
+      }
+
+      console.log("[v0] Parsed payment data:", paymentData)
+
+      if (!paymentData.invoice_url) {
+        console.error("[v0] Invalid payment response structure:", paymentData)
+        throw new Error("URL pembayaran tidak ditemukan dalam respons")
+      }
+
+      await clearCart(sessionId)
+
+      console.log("[v0] Redirecting to:", paymentData.invoice_url)
+      window.location.href = paymentData.invoice_url
     } catch (error) {
-      console.error("Checkout error:", error)
-      alert("Terjadi kesalahan saat checkout. Silakan coba lagi.")
-    } finally {
+      console.error("[v0] Checkout error:", error)
+      const errorMessage = error instanceof Error ? error.message : "Gagal membuat pembayaran, silakan coba lagi"
+      alert(errorMessage)
       setIsSubmitting(false)
+      setLoadingMessage("Memproses...")
     }
   }
 
@@ -175,7 +204,7 @@ export default function CheckoutPage() {
                     className="w-full bg-amber-500 hover:bg-amber-600 text-white"
                     size="lg"
                   >
-                    {isSubmitting ? "Memproses..." : "Lanjutkan ke Pembayaran"}
+                    {isSubmitting ? loadingMessage : "Lanjutkan ke Pembayaran"}
                   </Button>
                 </form>
               </CardContent>
