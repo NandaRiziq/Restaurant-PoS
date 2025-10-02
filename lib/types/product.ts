@@ -7,6 +7,8 @@ export interface Product {
   description: string | null
   created_at: string
   updated_at: string
+  is_active?: boolean // Add is_active field for soft delete
+  is_visible?: boolean // Added is_visible field for visibility toggle
 }
 
 export interface CartItem {

@@ -3,6 +3,19 @@
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { Product } from "@/lib/types/product"
 
+export async function getAllProductsAdmin(): Promise<Product[]> {
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase.from("products").select("*").order("name")
+
+  if (error) {
+    console.error("[v0] Error fetching products:", error)
+    return []
+  }
+
+  return data || []
+}
+
 export async function createProduct(data: {
   name: string
   price: number
@@ -69,10 +82,32 @@ export async function updateProduct(id: string, data: Partial<Product>) {
 export async function deleteProduct(id: string) {
   const supabase = createAdminClient()
 
-  const { error } = await supabase.from("products").delete().eq("id", id)
+  const { error } = await supabase
+    .from("products")
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq("id", id)
 
   if (error) {
     console.error("[v0] Error deleting product:", error)
+    return { success: false, error: error.message }
+  }
+
+  return { success: true }
+}
+
+export async function toggleProductVisibility(id: string, isVisible: boolean) {
+  const supabase = createAdminClient()
+
+  const { error } = await supabase
+    .from("products")
+    .update({
+      is_visible: isVisible,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+
+  if (error) {
+    console.error("[v0] Error toggling product visibility:", error)
     return { success: false, error: error.message }
   }
 
