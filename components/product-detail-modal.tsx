@@ -26,7 +26,18 @@ export function ProductDetailModal({ product, open, onOpenChange, onAddToCart }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 gap-0 max-h-[90vh] flex flex-col">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-md p-0 gap-0 max-h-[90vh] flex flex-col
+          top-0 translate-y-0 left-[50%] translate-x-[-50%]
+          sm:top-[50%] sm:translate-y-[-50%]
+          data-[state=open]:animate-in data-[state=closed]:animate-out
+          data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
+          data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top
+          sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95
+          sm:data-[state=closed]:slide-out-to-top-0 sm:data-[state=open]:slide-in-from-top-0
+          duration-300"
+      >
         {/* Close button */}
         <button
           onClick={() => onOpenChange(false)}
