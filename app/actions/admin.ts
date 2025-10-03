@@ -44,6 +44,8 @@ export async function createProduct(data: {
         category: data.category,
         description: data.description || null,
         image_url: imageUrl || null,
+        is_active: true,
+        is_visible: true,
       })
       .select()
       .single()
