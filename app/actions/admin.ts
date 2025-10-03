@@ -291,17 +291,53 @@ export async function processImageWithAI(
 
       clearTimeout(timeoutId)
 
+      console.log("[v0] n8n response status:", response.status)
+      console.log("[v0] n8n response headers:", Object.fromEntries(response.headers.entries()))
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error("[v0] n8n webhook error:", response.status, errorText)
-        throw new Error(`AI processing failed with status ${response.status}`)
+        return {
+          success: false,
+          error: `AI processing failed: ${response.status} - ${errorText.substring(0, 100)}`,
+        }
       }
 
-      const result = await response.json()
-      console.log("[v0] n8n response:", JSON.stringify(result))
+      const responseText = await response.text()
+      console.log("[v0] n8n raw response:", responseText)
+
+      if (!responseText || responseText.trim() === "") {
+        console.error("[v0] n8n returned empty response")
+        return {
+          success: false,
+          error: "AI tidak mengembalikan data. Pastikan n8n workflow berjalan dengan benar.",
+        }
+      }
+
+      let result
+      try {
+        result = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error("[v0] Failed to parse n8n response as JSON:", parseError)
+        console.error("[v0] Response text was:", responseText.substring(0, 500))
+        return {
+          success: false,
+          error: "AI mengembalikan response yang tidak valid. Pastikan n8n workflow mengembalikan JSON.",
+        }
+      }
+
+      console.log("[v0] n8n parsed response:", JSON.stringify(result))
 
       // n8n returns: { success: true, data: { name, price, category, description, image_url } }
       const n8nData = result.data || result
+
+      if (!n8nData.name && !n8nData.price) {
+        console.error("[v0] n8n response missing required fields:", n8nData)
+        return {
+          success: false,
+          error: "AI tidak mengembalikan data produk yang lengkap.",
+        }
+      }
 
       return {
         success: true,
