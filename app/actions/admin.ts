@@ -228,39 +228,6 @@ export async function processImageWithAI(
   error?: string
 }> {
   try {
-    // Step 1: Upload image to Supabase Storage
-    const supabase = createAdminClient()
-    const fileExt = fileName.split(".").pop()
-    const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-    const filePath = `${uniqueFileName}`
-
-    const base64Data = base64Image.split(",")[1] // Remove data:image/xxx;base64, prefix
-    const buffer = Buffer.from(base64Data, "base64")
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("product-images")
-      .upload(filePath, buffer, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: `image/${fileExt}`,
-      })
-
-    if (uploadError) {
-      console.error("[v0] Error uploading to Supabase Storage:", uploadError)
-      return {
-        success: false,
-        error: "Gagal mengupload gambar",
-      }
-    }
-
-    // Get public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("product-images").getPublicUrl(filePath)
-
-    console.log("[v0] Image uploaded to Supabase:", publicUrl)
-
-    // Step 2: Call n8n webhook with image URL
     const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL
 
     if (!n8nWebhookUrl || n8nWebhookUrl.trim() === "") {
@@ -271,7 +238,7 @@ export async function processImageWithAI(
       }
     }
 
-    console.log("[v0] Calling n8n webhook:", n8nWebhookUrl)
+    console.log("[v0] Calling n8n webhook with Base64 image:", n8nWebhookUrl)
 
     // Create abort controller for 30-second timeout
     const controller = new AbortController()
@@ -284,7 +251,8 @@ export async function processImageWithAI(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          image_url: publicUrl,
+          image_base64: base64Image, // Send Base64 string instead of URL
+          file_name: fileName,
         }),
         signal: controller.signal,
       })
@@ -328,7 +296,6 @@ export async function processImageWithAI(
 
       console.log("[v0] n8n parsed response:", JSON.stringify(result))
 
-      // n8n returns: { success: true, data: { name, price, category, description, image_url } }
       const n8nData = result.data || result
 
       if (!n8nData.name && !n8nData.price) {
@@ -346,7 +313,7 @@ export async function processImageWithAI(
           price: n8nData.price || 0,
           category: n8nData.category === "minuman" ? "minuman" : "makanan",
           description: n8nData.description || "",
-          image_url: publicUrl,
+          image_url: n8nData.image_url || "", // n8n should return the uploaded image URL
         },
       }
     } catch (fetchError) {
