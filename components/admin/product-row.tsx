@@ -30,6 +30,8 @@ interface ProductRowProps {
 export function ProductRow({ product, onUpdate, showVisibility = false }: ProductRowProps) {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false)
+  const [optimisticVisibility, setOptimisticVisibility] = useState(product.is_visible !== false)
   const { toast } = useToast()
 
   const handleDelete = async () => {
@@ -52,6 +54,9 @@ export function ProductRow({ product, onUpdate, showVisibility = false }: Produc
   }
 
   const handleToggleVisibility = async (checked: boolean) => {
+    setIsUpdatingVisibility(true)
+    setOptimisticVisibility(checked)
+
     const result = await toggleProductVisibility(product.id, checked)
 
     if (result.success) {
@@ -61,12 +66,15 @@ export function ProductRow({ product, onUpdate, showVisibility = false }: Produc
       })
       onUpdate()
     } else {
+      setOptimisticVisibility(!checked)
       toast({
         title: "Gagal mengubah visibilitas",
         description: result.error || "Terjadi kesalahan",
         variant: "destructive",
       })
     }
+
+    setIsUpdatingVisibility(false)
   }
 
   const isInactive = product.is_active === false
@@ -99,10 +107,19 @@ export function ProductRow({ product, onUpdate, showVisibility = false }: Produc
         <td className="px-4 py-4 text-gray-900 font-medium">{formatIDRCompact(product.price)}</td>
         {showVisibility && (
           <td className="px-4 py-4">
-            <div className="flex items-center gap-2">
-              <Switch checked={product.is_visible !== false} onCheckedChange={handleToggleVisibility} />
+            <div className="relative flex items-center gap-2">
+              {isUpdatingVisibility && (
+                <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center rounded-md z-10">
+                  <span className="text-xs font-medium text-gray-700">Memperbarui...</span>
+                </div>
+              )}
+              <Switch
+                checked={optimisticVisibility}
+                onCheckedChange={handleToggleVisibility}
+                disabled={isUpdatingVisibility}
+              />
               <span className="text-sm text-gray-600">
-                {product.is_visible !== false ? (
+                {optimisticVisibility ? (
                   <span className="flex items-center gap-1 text-green-600">
                     <Eye className="h-4 w-4" />
                     Terlihat

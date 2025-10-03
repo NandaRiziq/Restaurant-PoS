@@ -2,7 +2,6 @@
 
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { Product } from "@/lib/types/product"
-import { Buffer } from "buffer"
 
 export async function getAllProductsAdmin(): Promise<Product[]> {
   const supabase = createAdminClient()
@@ -211,10 +210,7 @@ export async function uploadImageToN8n(file: File): Promise<{ success: boolean; 
   }
 }
 
-export async function processImageWithAI(
-  base64Data: string,
-  fileName: string,
-): Promise<{
+export async function processImageWithAI(file: File): Promise<{
   success: boolean
   data?: {
     name: string
@@ -226,21 +222,17 @@ export async function processImageWithAI(
   error?: string
 }> {
   try {
-    const base64String = base64Data.split(",")[1] // Remove data:image/xxx;base64, prefix
-    const buffer = Buffer.from(base64String, "base64")
-
     // Step 1: Upload image to Supabase Storage
     const supabase = createAdminClient()
-    const fileExt = fileName.split(".").pop()
-    const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-    const filePath = `${uniqueFileName}`
+    const fileExt = file.name.split(".").pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    const filePath = `${fileName}`
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("product-images")
-      .upload(filePath, buffer, {
+      .upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
-        contentType: `image/${fileExt}`,
       })
 
     if (uploadError) {
