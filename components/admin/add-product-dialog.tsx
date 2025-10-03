@@ -54,7 +54,15 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
       setIsProcessing(true)
       try {
         console.log("[v0] Starting AI processing...")
-        const result = await processImageWithAI(imageFile)
+
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(imageFile)
+        })
+
+        const result = await processImageWithAI(base64, imageFile.name)
         console.log("[v0] AI processing result:", result)
 
         if (result.success && result.data) {
