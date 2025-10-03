@@ -54,12 +54,8 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
       setIsProcessing(true)
       try {
         console.log("[v0] Starting AI processing...")
-        const base64Image = await fileToBase64(imageFile)
-        const result = await processImageWithAI(base64Image, imageFile.name)
-        console.log("[v0] AI processing result:", JSON.stringify(result, null, 2))
-        console.log("[v0] Result success:", result.success)
-        console.log("[v0] Result data:", result.data)
-        console.log("[v0] Result error:", result.error)
+        const result = await processImageWithAI(imageFile)
+        console.log("[v0] AI processing result:", result)
 
         if (result.success && result.data) {
           // Pre-fill form with AI results
@@ -189,15 +185,6 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
 
   const handleBack = () => {
     setStep("upload")
-  }
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = (error) => reject(error)
-    })
   }
 
   return (

@@ -2,7 +2,6 @@
 
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { Product } from "@/lib/types/product"
-import { Buffer } from "buffer"
 
 export async function getAllProductsAdmin(): Promise<Product[]> {
   const supabase = createAdminClient()
@@ -45,8 +44,6 @@ export async function createProduct(data: {
         category: data.category,
         description: data.description || null,
         image_url: imageUrl || null,
-        is_active: true,
-        is_visible: true,
       })
       .select()
       .single()
@@ -213,10 +210,7 @@ export async function uploadImageToN8n(file: File): Promise<{ success: boolean; 
   }
 }
 
-export async function processImageWithAI(
-  base64Image: string,
-  fileName: string,
-): Promise<{
+export async function processImageWithAI(file: File): Promise<{
   success: boolean
   data?: {
     name: string
@@ -228,6 +222,35 @@ export async function processImageWithAI(
   error?: string
 }> {
   try {
+    // Step 1: Upload image to Supabase Storage
+    const supabase = createAdminClient()
+    const fileExt = file.name.split(".").pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    const filePath = `${fileName}`
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
+
+    if (uploadError) {
+      console.error("[v0] Error uploading to Supabase Storage:", uploadError)
+      return {
+        success: false,
+        error: "Gagal mengupload gambar",
+      }
+    }
+
+    // Get public URL
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("product-images").getPublicUrl(filePath)
+
+    console.log("[v0] Image uploaded to Supabase:", publicUrl)
+
+    // Step 2: Call n8n webhook with image URL
     const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL
 
     if (!n8nWebhookUrl || n8nWebhookUrl.trim() === "") {
@@ -238,7 +261,7 @@ export async function processImageWithAI(
       }
     }
 
-    console.log("[v0] Calling n8n webhook with Base64 image:", n8nWebhookUrl)
+    console.log("[v0] Calling n8n webhook:", n8nWebhookUrl)
 
     // Create abort controller for 30-second timeout
     const controller = new AbortController()
@@ -251,60 +274,24 @@ export async function processImageWithAI(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          image_base64: base64Image, // Send Base64 string instead of URL
-          file_name: fileName,
+          image_url: publicUrl,
         }),
         signal: controller.signal,
       })
 
       clearTimeout(timeoutId)
 
-      console.log("[v0] n8n response status:", response.status)
-      console.log("[v0] n8n response headers:", Object.fromEntries(response.headers.entries()))
-
       if (!response.ok) {
         const errorText = await response.text()
         console.error("[v0] n8n webhook error:", response.status, errorText)
-        return {
-          success: false,
-          error: `AI processing failed: ${response.status} - ${errorText.substring(0, 100)}`,
-        }
+        throw new Error(`AI processing failed with status ${response.status}`)
       }
 
-      const responseText = await response.text()
-      console.log("[v0] n8n raw response:", responseText)
+      const result = await response.json()
+      console.log("[v0] n8n response:", JSON.stringify(result))
 
-      if (!responseText || responseText.trim() === "") {
-        console.error("[v0] n8n returned empty response")
-        return {
-          success: false,
-          error: "AI tidak mengembalikan data. Pastikan n8n workflow berjalan dengan benar.",
-        }
-      }
-
-      let result
-      try {
-        result = JSON.parse(responseText)
-      } catch (parseError) {
-        console.error("[v0] Failed to parse n8n response as JSON:", parseError)
-        console.error("[v0] Response text was:", responseText.substring(0, 500))
-        return {
-          success: false,
-          error: "AI mengembalikan response yang tidak valid. Pastikan n8n workflow mengembalikan JSON.",
-        }
-      }
-
-      console.log("[v0] n8n parsed response:", JSON.stringify(result))
-
+      // n8n returns: { success: true, data: { name, price, category, description, image_url } }
       const n8nData = result.data || result
-
-      if (!n8nData.name && !n8nData.price) {
-        console.error("[v0] n8n response missing required fields:", n8nData)
-        return {
-          success: false,
-          error: "AI tidak mengembalikan data produk yang lengkap.",
-        }
-      }
 
       return {
         success: true,
@@ -313,7 +300,7 @@ export async function processImageWithAI(
           price: n8nData.price || 0,
           category: n8nData.category === "minuman" ? "minuman" : "makanan",
           description: n8nData.description || "",
-          image_url: n8nData.image_url || "", // n8n should return the uploaded image URL
+          image_url: publicUrl,
         },
       }
     } catch (fetchError) {
